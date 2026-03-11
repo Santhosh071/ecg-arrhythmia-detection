@@ -52,15 +52,6 @@ This system takes a raw ECG signal as input and outputs:
 
 > In clinical systems, **recall is the most critical metric** — missing an arrhythmia is far more dangerous than a false alarm. The combined system achieves 99.57% recall on CPU-only hardware.
 
-### Inference Speed (Intel i5-6300U — CPU Only)
-
-| Beat Count | Total Time | Per Beat |
-|:---:|:---:|:---:|
-| 10 beats | 229 ms | 22.9 ms |
-| 50 beats | 972 ms | 19.4 ms |
-| 100 beats | 1,958 ms | 19.6 ms |
-| 500 beats | 9,868 ms | 19.7 ms |
-
 ---
 
 ## 🏗 System Architecture
