@@ -344,7 +344,3 @@ python evaluation/evaluation_report.py   # Generate PDF + CSV
 | Testing | pytest | 8.2 |
 
 ---
-
-<div align="center">
-Built with ❤️ for cardiac health monitoring
-</div>
