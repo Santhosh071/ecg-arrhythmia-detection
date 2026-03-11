@@ -1,0 +1,229 @@
+{
+  "cnn": {
+    "model": "CNN Classifier",
+    "accuracy": 0.9718,
+    "macro_f1": 0.8956,
+    "weighted_f1": 0.9751,
+    "mean_confidence": 0.9765,
+    "per_class": {
+      "0": {
+        "name": "Normal (N)",
+        "short": "N",
+        "support": 11255,
+        "precision": 0.9969,
+        "recall": 0.9662,
+        "f1": 0.9813
+      },
+      "1": {
+        "name": "Left Bundle Branch Block (L)",
+        "short": "L",
+        "support": 1211,
+        "precision": 0.9967,
+        "recall": 0.995,
+        "f1": 0.9959
+      },
+      "2": {
+        "name": "Right Bundle Branch Block (R)",
+        "short": "R",
+        "support": 1089,
+        "precision": 0.9963,
+        "recall": 0.9972,
+        "f1": 0.9968
+      },
+      "3": {
+        "name": "Atrial Premature Beat (A)",
+        "short": "A",
+        "support": 382,
+        "precision": 0.6568,
+        "recall": 0.9319,
+        "f1": 0.7706
+      },
+      "4": {
+        "name": "Premature Ventricular Contraction (V)",
+        "short": "V",
+        "support": 1069,
+        "precision": 0.9531,
+        "recall": 0.9691,
+        "f1": 0.961
+      },
+      "5": {
+        "name": "Paced Beat (/)",
+        "short": "/",
+        "support": 1054,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "6": {
+        "name": "Ventricular Escape Beat (E)",
+        "short": "E",
+        "support": 16,
+        "precision": 0.9333,
+        "recall": 0.875,
+        "f1": 0.9032
+      },
+      "7": {
+        "name": "Fusion Beat (F)",
+        "short": "F",
+        "support": 120,
+        "precision": 0.3931,
+        "recall": 0.95,
+        "f1": 0.5561
+      }
+    },
+    "confusion_matrix": [
+      [
+        10875,
+        3,
+        1,
+        182,
+        40,
+        0,
+        0,
+        154
+      ],
+      [
+        1,
+        1205,
+        0,
+        1,
+        3,
+        0,
+        1,
+        0
+      ],
+      [
+        0,
+        0,
+        1086,
+        1,
+        2,
+        0,
+        0,
+        0
+      ],
+      [
+        23,
+        0,
+        2,
+        356,
+        1,
+        0,
+        0,
+        0
+      ],
+      [
+        9,
+        1,
+        0,
+        2,
+        1036,
+        0,
+        0,
+        21
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        1054,
+        0,
+        0
+      ],
+      [
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        14,
+        1
+      ],
+      [
+        0,
+        0,
+        1,
+        0,
+        5,
+        0,
+        0,
+        114
+      ]
+    ]
+  },
+  "transformer_ae": {
+    "model": "Transformer Autoencoder",
+    "threshold": 0.0029708631336688995,
+    "accuracy": 0.9836,
+    "precision": 0.9733,
+    "recall": 0.9729,
+    "f1": 0.9731,
+    "roc_auc": 0.9872,
+    "false_pos_rate": 0.0117,
+    "false_neg_rate": 0.0271,
+    "tp": 4807,
+    "fp": 132,
+    "tn": 11123,
+    "fn": 134,
+    "normal_mean_error": 0.001279,
+    "anomaly_mean_error": 0.15598
+  },
+  "lstm_ae": {
+    "model": "LSTM Autoencoder",
+    "threshold": 0.0005947667596046813,
+    "accuracy": 0.6895,
+    "precision": 0.3736,
+    "recall": 0.0263,
+    "f1": 0.0492,
+    "roc_auc": 0.6195,
+    "false_pos_rate": 0.0194,
+    "false_neg_rate": 0.9737,
+    "tp": 130,
+    "fp": 218,
+    "tn": 11037,
+    "fn": 4811,
+    "normal_mean_error": 0.000115,
+    "anomaly_mean_error": 0.000158
+  },
+  "combined": {
+    "model": "Combined System",
+    "accuracy": 0.9607,
+    "precision": 0.8889,
+    "recall": 0.9957,
+    "f1": 0.9393,
+    "false_pos_rate": 0.0546,
+    "false_neg_rate": 0.0043,
+    "tp": 4920,
+    "fp": 615,
+    "tn": 10640,
+    "fn": 21
+  },
+  "speed_benchmark": {
+    "10": {
+      "total_ms": 228.9,
+      "per_beat_ms": 22.886
+    },
+    "50": {
+      "total_ms": 972.4,
+      "per_beat_ms": 19.448
+    },
+    "100": {
+      "total_ms": 1957.5,
+      "per_beat_ms": 19.575
+    },
+    "200": {
+      "total_ms": 4056.5,
+      "per_beat_ms": 20.283
+    },
+    "500": {
+      "total_ms": 9867.6,
+      "per_beat_ms": 19.735
+    }
+  },
+  "test_set_size": 16196,
+  "normal_count": 11255,
+  "anomaly_count": 4941
+}
