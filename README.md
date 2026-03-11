@@ -1,9 +1,5 @@
 # 🫀 ECG Arrhythmia Detection System
 
-### A Production-Grade 6-Layer AI Pipeline for Real-Time Cardiac Monitoring
-
----
-
 ## 📌 What This Project Does
 
 This system takes a raw ECG signal as input and outputs:
