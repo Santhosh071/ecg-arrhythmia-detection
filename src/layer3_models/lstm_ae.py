@@ -20,6 +20,7 @@ class LSTMEncoder(nn.Module):
         outputs, (hidden, cell) = self.lstm(x)
         return outputs, hidden, cell
 
+
 class LSTMDecoder(nn.Module):
     def __init__(self, hidden_size, num_layers, dropout):
         super().__init__()
@@ -38,14 +39,14 @@ class LSTMDecoder(nn.Module):
 class LSTMAutoencoder(nn.Module):
     def __init__(self, hidden_size=64, num_layers=2, dropout=0.2):
         super().__init__()
-        self.encoder = LSTMEncoder(hidden_size, num_layers, dropout)
-        self.decoder = LSTMDecoder(hidden_size, num_layers, dropout)
+        self.encoder   = LSTMEncoder(hidden_size, num_layers, dropout)
+        self.decoder   = LSTMDecoder(hidden_size, num_layers, dropout)
         self.threshold = None
 
     def forward(self, x):
-        x = x.unsqueeze(-1)                             
-        enc_out, hidden, cell = self.encoder(x)          
-        return self.decoder(enc_out, hidden, cell)      
+        x = x.unsqueeze(-1)
+        enc_out, hidden, cell = self.encoder(x)
+        return self.decoder(enc_out, hidden, cell)
 
     def reconstruction_error(self, x):
         return ((x - self.forward(x)) ** 2).mean(dim=-1)
@@ -73,6 +74,12 @@ class LSTMAutoencoder(nn.Module):
     def model_summary(self):
         total     = sum(p.numel() for p in self.parameters())
         trainable = sum(p.numel() for p in self.parameters() if p.requires_grad)
+        print(f"[LSTMAutoencoder] Params: {total:,} total | {trainable:,} trainable")
+        print(f"  Input : (batch, {BEAT_LENGTH})")
+        print(f"  Output: (batch, {BEAT_LENGTH})")
+        print(f"  Threshold: {self.threshold}")
+
+
 if __name__ == "__main__":
     try:
         model = LSTMAutoencoder()
@@ -84,5 +91,6 @@ if __name__ == "__main__":
         model.compute_threshold(errors)
         is_anomaly, _ = model.detect_anomaly(x)
         print(f"  Anomalies detected: {is_anomaly.sum().item()} / {len(x)}")
+        print("[PASS] lstm_ae.py ready for training.")
     except Exception as e:
         print(f"[FAIL] {e}")

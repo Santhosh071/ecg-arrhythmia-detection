@@ -16,6 +16,7 @@ NUM_CLASSES = 8
 BEAT_LENGTH = 187
 SAMPLE_RATE = 360
 
+
 class ConvBlock1D(nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size=7, pool_size=2):
         super().__init__()
@@ -26,21 +27,22 @@ class ConvBlock1D(nn.Module):
     def forward(self, x):
         return self.pool(F.relu(self.bn(self.conv(x))))
 
+
 class ECGCNNClassifier(nn.Module):
 
     def __init__(self, num_classes=NUM_CLASSES, dropout_rate=0.4):
         super().__init__()
-        self.conv1 = ConvBlock1D(1,   32, kernel_size=7)
-        self.conv2 = ConvBlock1D(32,  64, kernel_size=5)
-        self.conv3 = ConvBlock1D(64, 128, kernel_size=5)
-        self.gap = nn.AdaptiveAvgPool1d(1)
+        self.conv1    = ConvBlock1D(1,   32, kernel_size=7)
+        self.conv2    = ConvBlock1D(32,  64, kernel_size=5)
+        self.conv3    = ConvBlock1D(64, 128, kernel_size=5)
+        self.gap      = nn.AdaptiveAvgPool1d(1)
         self.fc1      = nn.Linear(128, 256)
         self.bn_fc1   = nn.BatchNorm1d(256)
         self.dropout1 = nn.Dropout(dropout_rate)
         self.fc2      = nn.Linear(256, 128)
         self.bn_fc2   = nn.BatchNorm1d(128)
         self.dropout2 = nn.Dropout(dropout_rate)
-        self.output = nn.Linear(128, num_classes)
+        self.output   = nn.Linear(128, num_classes)
         self._init_weights()
 
     def _init_weights(self):
@@ -70,6 +72,10 @@ class ECGCNNClassifier(nn.Module):
     def model_summary(self):
         total     = sum(p.numel() for p in self.parameters())
         trainable = sum(p.numel() for p in self.parameters() if p.requires_grad)
+        print(f"[ECGCNNClassifier] Params: {total:,} total | {trainable:,} trainable")
+        print(f"  Input : (batch, 1, {BEAT_LENGTH})")
+        print(f"  Output: (batch, {NUM_CLASSES})")
+
 
 if __name__ == "__main__":
     try:
@@ -79,5 +85,6 @@ if __name__ == "__main__":
         logits = model(x)
         assert logits.shape == (4, NUM_CLASSES)
         pred, conf, names = model.predict(x)
+        print("[PASS] cnn.py ready for training.")
     except Exception as e:
         print(f"[FAIL] {e}")

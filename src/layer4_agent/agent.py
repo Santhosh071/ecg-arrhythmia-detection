@@ -1,10 +1,10 @@
-import logging
+﻿import logging
 from langchain.agents import AgentExecutor, create_react_agent
 from langchain.prompts import PromptTemplate
 
 from .llm_config   import get_llm, check_llm_status
-from .memory       import ECGDatabase, get_short_term_memory
 from .agent_tools  import ALL_TOOLS, init_tools
+from src.layer6_storage import ECGDatabase, get_short_term_memory
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +19,7 @@ Tool names: {tool_names}
 STRICT RULES:
 1. You are a DECISION SUPPORT tool only. Never make final clinical decisions alone.
 2. Always include a disclaimer when providing clinical interpretations.
-3. Use tools to answer — do not guess from memory alone.
+3. Use tools to answer â€” do not guess from memory alone.
 4. If the question is outside cardiology/ECG scope, politely decline.
 
 Use this format:
@@ -43,13 +43,13 @@ class ECGAgent:
 
     Attributes
     ----------
-    db       : ECGDatabase — long-term SQLite memory
-    memory   : ConversationBufferWindowMemory — short-term window
+    db       : ECGDatabase â€” long-term SQLite memory
+    memory   : ConversationBufferWindowMemory â€” short-term window
     executor : LangChain AgentExecutor
     ready    : bool
     """
-    def __init__(self, db_path: str = None):
-        self.db       = ECGDatabase(db_path) if db_path else ECGDatabase()
+    def __init__(self, db_path: str = None, db_url: str = None):
+        self.db       = ECGDatabase(db_path=db_path, db_url=db_url) if (db_path or db_url) else ECGDatabase()
         self.memory   = get_short_term_memory(k=10)
         self.executor = None
         self.ready    = False
@@ -96,8 +96,8 @@ class ECGAgent:
 
         Parameters
         ----------
-        user_input : str — clinician's question or command
-        patient_id : str — optional, appended to context if provided
+        user_input : str â€” clinician's question or command
+        patient_id : str â€” optional, appended to context if provided
 
         Returns
         -------
@@ -158,5 +158,6 @@ class ECGAgent:
             "tools_count" : len(ALL_TOOLS),
             "tool_names"  : [t.name for t in ALL_TOOLS],
             "memory_type" : "ConversationBufferWindowMemory(k=10)",
-            "db_type"     : "SQLite",
+            "db_type"     : getattr(self.db, "backend", "SQLAlchemy"),
         }
+

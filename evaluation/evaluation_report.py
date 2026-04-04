@@ -12,18 +12,21 @@ from reportlab.lib.units import cm
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.platypus import (
     SimpleDocTemplate, Paragraph, Spacer,
-    Table, TableStyle, PageBreak,
+    Table, TableStyle,
 )
 
 EVAL_DIR  = Path(r"C:\ecg_arrhythmia\evaluation")
 JSON_PATH = EVAL_DIR / "eval_results.json"
 PDF_PATH  = EVAL_DIR / "evaluation_report.pdf"
 CSV_PATH  = EVAL_DIR / "evaluation_summary.csv"
+
 CLASS_NAMES = {
-    0: "Normal (N)", 1: "LBBB (L)", 2: "RBBB (R)",
-    3: "Atrial Premature (A)", 4: "PVC (V)",
-    5: "Paced Beat (/)", 6: "Ventricular Escape (E)", 7: "Fusion Beat (F)",
+    0: "Normal (N)",          1: "LBBB (L)",
+    2: "RBBB (R)",            3: "Atrial Premature (A)",
+    4: "PVC (V)",             5: "Paced Beat (/)",
+    6: "Ventricular Escape (E)", 7: "Fusion Beat (F)",
 }
+
 
 def _table_style(header_color=colors.HexColor("#1565C0")) -> TableStyle:
     return TableStyle([
@@ -39,25 +42,25 @@ def _table_style(header_color=colors.HexColor("#1565C0")) -> TableStyle:
         ("BOTTOMPADDING", (0, 0), (-1,-1), 4),
     ])
 
+
 def generate_pdf(results: dict):
     """Build full evaluation PDF report."""
     doc    = SimpleDocTemplate(str(PDF_PATH), pagesize=A4,
-                                topMargin=2*cm, bottomMargin=2*cm,
-                                leftMargin=2*cm, rightMargin=2*cm)
+                               topMargin=2*cm, bottomMargin=2*cm,
+                               leftMargin=2*cm, rightMargin=2*cm)
     styles = getSampleStyleSheet()
     story  = []
+
     title_style = ParagraphStyle("title", parent=styles["Title"],
-                                  fontSize=20, spaceAfter=6)
+                                 fontSize=20, spaceAfter=6)
     h1_style    = ParagraphStyle("h1", parent=styles["Heading1"],
-                                  fontSize=14, spaceAfter=4,
-                                  textColor=colors.HexColor("#1565C0"))
-    h2_style    = ParagraphStyle("h2", parent=styles["Heading2"],
-                                  fontSize=11, spaceAfter=4,
-                                  textColor=colors.HexColor("#0D47A1"))
+                                 fontSize=14, spaceAfter=4,
+                                 textColor=colors.HexColor("#1565C0"))
     body_style  = styles["Normal"]
     disc_style  = ParagraphStyle("disc", parent=styles["Normal"],
-                                  fontSize=8, textColor=colors.grey,
-                                  borderPad=4)
+                                 fontSize=8, textColor=colors.grey,
+                                 borderPad=4)
+
     story.append(Paragraph("ECG Arrhythmia Detection System", title_style))
     story.append(Paragraph("Phase 10 — Model Evaluation Report", h1_style))
     story.append(Paragraph(
@@ -72,6 +75,7 @@ def generate_pdf(results: dict):
         disc_style
     ))
     story.append(Spacer(1, 0.5*cm))
+
     story.append(Paragraph("1. Dataset", h1_style))
     ds_data = [
         ["Dataset",        "MIT-BIH Arrhythmia Database"],
@@ -84,20 +88,21 @@ def generate_pdf(results: dict):
     ]
     t = Table(ds_data, colWidths=[6*cm, 10*cm])
     t.setStyle(TableStyle([
-        ("BACKGROUND",  (0, 0), (0, -1), colors.HexColor("#E3F2FD")),
-        ("FONTNAME",    (0, 0), (-1, -1), "Helvetica"),
-        ("FONTSIZE",    (0, 0), (-1, -1), 9),
-        ("GRID",        (0, 0), (-1, -1), 0.4, colors.grey),
-        ("TOPPADDING",  (0, 0), (-1, -1), 4),
-        ("BOTTOMPADDING",(0,0), (-1, -1), 4),
+        ("BACKGROUND",   (0, 0), (0, -1), colors.HexColor("#E3F2FD")),
+        ("FONTNAME",     (0, 0), (-1, -1), "Helvetica"),
+        ("FONTSIZE",     (0, 0), (-1, -1), 9),
+        ("GRID",         (0, 0), (-1, -1), 0.4, colors.grey),
+        ("TOPPADDING",   (0, 0), (-1, -1), 4),
+        ("BOTTOMPADDING",(0, 0), (-1, -1), 4),
     ]))
     story.append(t)
     story.append(Spacer(1, 0.5*cm))
+
     story.append(Paragraph("2. Overall Results Summary", h1_style))
-    cnn  = results.get("cnn",           {})
-    tae  = results.get("transformer_ae",{})
-    lstm = results.get("lstm_ae",       {})
-    comb = results.get("combined",      {})
+    cnn  = results.get("cnn",            {})
+    tae  = results.get("transformer_ae", {})
+    lstm = results.get("lstm_ae",        {})
+    comb = results.get("combined",       {})
     summary = [
         ["Model", "Accuracy", "F1 Score", "Precision", "Recall", "ROC-AUC"],
         ["CNN Classifier",
@@ -126,32 +131,33 @@ def generate_pdf(results: dict):
     t.setStyle(_table_style())
     story.append(t)
     story.append(Spacer(1, 0.5*cm))
+
     story.append(Paragraph("3. CNN Classifier — Per-Class Results", h1_style))
     per_class = cnn.get("per_class", {})
-    pc_data = [["Class", "Name", "Support", "Precision", "Recall", "F1"]]
+    pc_data   = [["Class", "Name", "Support", "Precision", "Recall", "F1"]]
     for cls_id, m in per_class.items():
         pc_data.append([
             m.get("short", str(cls_id)),
             m.get("name",  CLASS_NAMES.get(int(cls_id), "?")),
-            str(m.get("support",  0)),
-            f"{m.get('precision',0):.4f}",
-            f"{m.get('recall',   0):.4f}",
-            f"{m.get('f1',       0):.4f}",
+            str(m.get("support",   0)),
+            f"{m.get('precision', 0):.4f}",
+            f"{m.get('recall',    0):.4f}",
+            f"{m.get('f1',        0):.4f}",
         ])
     t = Table(pc_data, colWidths=[1.5*cm, 6.5*cm, 2*cm, 2.5*cm, 2.2*cm, 2*cm])
     t.setStyle(_table_style(colors.HexColor("#2E7D32")))
     story.append(t)
     story.append(Spacer(1, 0.5*cm))
+
     story.append(Paragraph("4. CNN Confusion Matrix", h1_style))
     story.append(Paragraph(
-        "Rows = True Class, Columns = Predicted Class. "
-        "Classes: N L R A V / E F",
+        "Rows = True Class, Columns = Predicted Class. Classes: N L R A V / E F",
         body_style
     ))
     story.append(Spacer(1, 0.2*cm))
     cm_raw = cnn.get("confusion_matrix", [])
     if cm_raw:
-        short = ["N","L","R","A","V","/","E","F"]
+        short    = ["N","L","R","A","V","/","E","F"]
         cm_table = [[""] + short]
         for i, row in enumerate(cm_raw):
             cm_table.append([short[i]] + [str(v) for v in row])
@@ -163,30 +169,28 @@ def generate_pdf(results: dict):
         t.setStyle(cm_style)
         story.append(t)
     story.append(Spacer(1, 0.5*cm))
+
     story.append(Paragraph("5. Autoencoder Anomaly Detection", h1_style))
     ae_data = [
         ["Metric", "Transformer AE", "LSTM AE"],
-        ["Threshold",       f"{tae.get('threshold',0):.6f}",        f"{lstm.get('threshold',0):.6f}"],
-        ["Accuracy",        f"{tae.get('accuracy',0)*100:.2f}%",    f"{lstm.get('accuracy',0)*100:.2f}%"],
-        ["Precision",       f"{tae.get('precision',0):.4f}",        f"{lstm.get('precision',0):.4f}"],
-        ["Recall",          f"{tae.get('recall',0):.4f}",           f"{lstm.get('recall',0):.4f}"],
-        ["F1 Score",        f"{tae.get('f1',0):.4f}",              f"{lstm.get('f1',0):.4f}"],
-        ["ROC-AUC",         f"{tae.get('roc_auc',0):.4f}",         f"{lstm.get('roc_auc',0):.4f}"],
-        ["False Pos Rate",  f"{tae.get('false_pos_rate',0)*100:.2f}%",
-                            f"{lstm.get('false_pos_rate',0)*100:.2f}%"],
-        ["False Neg Rate",  f"{tae.get('false_neg_rate',0)*100:.2f}%",
-                            f"{lstm.get('false_neg_rate',0)*100:.2f}%"],
-        ["Normal Err Mean", f"{tae.get('normal_mean_error',0):.6f}",
-                            f"{lstm.get('normal_mean_error',0):.6f}"],
-        ["Anomaly Err Mean",f"{tae.get('anomaly_mean_error',0):.6f}",
-                            f"{lstm.get('anomaly_mean_error',0):.6f}"],
+        ["Threshold",       f"{tae.get('threshold',0):.6f}",         f"{lstm.get('threshold',0):.6f}"],
+        ["Accuracy",        f"{tae.get('accuracy',0)*100:.2f}%",     f"{lstm.get('accuracy',0)*100:.2f}%"],
+        ["Precision",       f"{tae.get('precision',0):.4f}",         f"{lstm.get('precision',0):.4f}"],
+        ["Recall",          f"{tae.get('recall',0):.4f}",            f"{lstm.get('recall',0):.4f}"],
+        ["F1 Score",        f"{tae.get('f1',0):.4f}",               f"{lstm.get('f1',0):.4f}"],
+        ["ROC-AUC",         f"{tae.get('roc_auc',0):.4f}",          f"{lstm.get('roc_auc',0):.4f}"],
+        ["False Pos Rate",  f"{tae.get('false_pos_rate',0)*100:.2f}%",  f"{lstm.get('false_pos_rate',0)*100:.2f}%"],
+        ["False Neg Rate",  f"{tae.get('false_neg_rate',0)*100:.2f}%",  f"{lstm.get('false_neg_rate',0)*100:.2f}%"],
+        ["Normal Err Mean", f"{tae.get('normal_mean_error',0):.6f}",    f"{lstm.get('normal_mean_error',0):.6f}"],
+        ["Anomaly Err Mean",f"{tae.get('anomaly_mean_error',0):.6f}",   f"{lstm.get('anomaly_mean_error',0):.6f}"],
     ]
     t = Table(ae_data, colWidths=[5*cm, 5.5*cm, 5.5*cm])
     t.setStyle(_table_style(colors.HexColor("#E65100")))
     story.append(t)
     story.append(Spacer(1, 0.5*cm))
+
     story.append(Paragraph("6. Inference Speed (CPU)", h1_style))
-    speed = results.get("speed_benchmark", {})
+    speed   = results.get("speed_benchmark", {})
     sp_data = [["Beat Count", "Total Time (ms)", "Time per Beat (ms)"]]
     for n, m in sorted(speed.items(), key=lambda x: int(x[0])):
         sp_data.append([str(n), f"{m['total_ms']}", f"{m['per_beat_ms']}"])
@@ -198,15 +202,15 @@ def generate_pdf(results: dict):
         "Hardware: Intel i5-6300U, 2.4GHz, CPU-only inference (no GPU).",
         body_style
     ))
+
     doc.build(story)
     print(f"  PDF saved: {PDF_PATH}")
+
 
 def generate_csv(results: dict):
     """Save key metrics to CSV for capstone report tables."""
     rows = []
-
-    # CNN
-    cnn = results.get("cnn", {})
+    cnn  = results.get("cnn", {})
     rows.append(["CNN Classifier", "Overall", "",
                  f"{cnn.get('accuracy',0)*100:.2f}",
                  f"{cnn.get('weighted_f1',0):.4f}", "", "", ""])
@@ -221,8 +225,6 @@ def generate_csv(results: dict):
             f"{m.get('recall',0):.4f}",
             str(m.get("support", 0)),
         ])
-
-    # AEs
     for key, name in [("transformer_ae", "Transformer AE"), ("lstm_ae", "LSTM AE")]:
         m = results.get(key, {})
         rows.append([name, "Binary", "",
@@ -231,21 +233,19 @@ def generate_csv(results: dict):
                      f"{m.get('precision',0):.4f}",
                      f"{m.get('recall',0):.4f}",
                      f"AUC={m.get('roc_auc',0):.4f}"])
-
-    # Combined
     m = results.get("combined", {})
     rows.append(["Combined System", "Binary", "",
                  f"{m.get('accuracy',0)*100:.2f}",
                  f"{m.get('f1',0):.4f}",
                  f"{m.get('precision',0):.4f}",
                  f"{m.get('recall',0):.4f}", ""])
-
     with open(str(CSV_PATH), "w", newline="") as f:
         writer = csv.writer(f)
         writer.writerow(["Model", "Class", "Class Name",
                          "Accuracy(%)", "F1", "Precision", "Recall", "Notes"])
         writer.writerows(rows)
     print(f"  CSV saved: {CSV_PATH}")
+
 
 def main():
     print(f"\n{'='*55}")
@@ -265,6 +265,7 @@ def main():
     print(f"  PDF : evaluation_report.pdf")
     print(f"  CSV : evaluation_summary.csv")
     print(f"  JSON: eval_results.json")
+
 
 if __name__ == "__main__":
     main()

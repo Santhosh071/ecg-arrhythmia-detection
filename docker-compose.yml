@@ -1,0 +1,45 @@
+﻿services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ecg_arrhythmia
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      DB_BACKEND: postgresql
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ecg_arrhythmia
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@postgres:5432/ecg_arrhythmia
+      REPORTS_PATH: /app/outputs/reports
+    ports:
+      - "8000:8000"
+    depends_on:
+      - postgres
+    volumes:
+      - ./outputs:/app/outputs
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    environment:
+      NEXT_PUBLIC_API_BASE_URL: http://api:8000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
+
+volumes:
+  postgres_data:

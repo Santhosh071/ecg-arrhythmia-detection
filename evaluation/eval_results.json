@@ -203,24 +203,24 @@
   },
   "speed_benchmark": {
     "10": {
-      "total_ms": 228.9,
-      "per_beat_ms": 22.886
+      "total_ms": 321.2,
+      "per_beat_ms": 32.12
     },
     "50": {
-      "total_ms": 972.4,
-      "per_beat_ms": 19.448
+      "total_ms": 1471.1,
+      "per_beat_ms": 29.421
     },
     "100": {
-      "total_ms": 1957.5,
-      "per_beat_ms": 19.575
+      "total_ms": 5853.0,
+      "per_beat_ms": 58.53
     },
     "200": {
-      "total_ms": 4056.5,
-      "per_beat_ms": 20.283
+      "total_ms": 12027.0,
+      "per_beat_ms": 60.135
     },
     "500": {
-      "total_ms": 9867.6,
-      "per_beat_ms": 19.735
+      "total_ms": 17485.4,
+      "per_beat_ms": 34.971
     }
   },
   "test_set_size": 16196,

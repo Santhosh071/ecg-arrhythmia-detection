@@ -1,69 +1,48 @@
-# ============================================================
-#  requirements.txt
-#  ECG Arrhythmia Detection System — All Dependencies
-#  Install: pip install -r requirements.txt
-#  Python: 3.10+
-# ============================================================
-
-
-# ── Core Scientific Stack ────────────────────────────────────
+﻿# Core ML and signal processing
 numpy==1.26.4
 scipy==1.13.0
 pandas==2.2.2
-matplotlib==3.9.0
 scikit-learn==1.5.0
+wfdb==4.1.2
+matplotlib==3.9.0
 
-# ── PyTorch (CPU only — Rule #1, Hardware constraint) ────────
-# Visit https://pytorch.org to get exact CPU install command
-# For Windows CPU:
+# PyTorch inference/models
+--extra-index-url https://download.pytorch.org/whl/cpu
 torch==2.3.0+cpu
 torchaudio==2.3.0+cpu
---extra-index-url https://download.pytorch.org/whl/cpu
 
-# ── ECG Signal Processing ────────────────────────────────────
-wfdb==4.1.2                   # MIT-BIH + PTB-XL loading
-neurokit2==0.2.7              # Pan-Tompkins R-peak detection
-
-# ── AI Agent Stack ───────────────────────────────────────────
-langchain==0.2.6
-langchain-community==0.2.6
-langchain-core==0.2.11
-llama-index==0.10.51
-llama-index-core==0.10.51
-groq==0.9.0                   # Groq API client (online LLM)
-ollama==0.2.1                 # Phi-3 Mini local LLM
-
-# ── Dashboard ────────────────────────────────────────────────
-streamlit==1.36.0
-plotly==5.22.0
-
-# ── Backend API ──────────────────────────────────────────────
+# API and app runtime
 fastapi==0.111.0
 uvicorn==0.30.1
-python-multipart==0.0.9       # File uploads in FastAPI
-
-# ── Database ─────────────────────────────────────────────────
-sqlalchemy==2.0.31
-aiosqlite==0.20.0             # Async SQLite support
-
-# ── PDF Generation ───────────────────────────────────────────
-reportlab==4.2.2
-
-# ── Environment + Config ─────────────────────────────────────
+python-multipart==0.0.9
 python-dotenv==1.0.1
 pydantic==2.7.4
 pydantic-settings==2.3.4
-
-# ── HTTP + Networking ────────────────────────────────────────
 httpx==0.27.0
-requests==2.32.3
 
-# ── Utilities ────────────────────────────────────────────────
-tqdm==4.66.4                  # Progress bars during training
-loguru==0.7.2                 # Better logging than print()
-joblib==1.4.2                 # Parallel processing + caching
-pyarrow==16.1.0               # Fast dataframe saving (.parquet)
+# Database and migrations
+sqlalchemy==2.0.31
+alembic==1.14.0
+psycopg[binary]==3.2.3
 
-# ── Testing ──────────────────────────────────────────────────
+# AI agent stack
+langchain==0.2.6
+langchain-core==0.2.11
+langchain-community==0.2.6
+langchain-groq==0.1.6
+
+# Reports
+reportlab==4.2.2
+
+# Optional legacy Streamlit dashboard and charts
+streamlit==1.36.0
+plotly==5.22.0
+
+# Evaluation and training support
+joblib==1.4.2
+tqdm==4.66.4
+pyarrow==16.1.0
+
+# Testing
 pytest==8.2.2
 pytest-asyncio==0.23.7

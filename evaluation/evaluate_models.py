@@ -7,17 +7,19 @@ from pathlib import Path
 sys.path.insert(0, r"C:\ecg_arrhythmia")
 from sklearn.metrics import (
     accuracy_score, f1_score, precision_score, recall_score,
-    confusion_matrix, classification_report, roc_auc_score,
+    confusion_matrix, roc_auc_score,
 )
 import torch
 from src.layer3_models.inference import (
     ModelLoader, predict_beats, BEAT_LENGTH, CLASS_NAMES, SHORT_NAMES
 )
+
 MODELS_DIR = Path(r"D:\ecg_project\models")
 DATA_DIR   = Path(r"D:\ecg_project\datasets\mitbih\processed")
 DEVICE     = torch.device("cpu")
 SEP        = "=" * 55
 SEP2       = "-" * 55
+
 
 def load_test_data(split: str = "test") -> tuple:
     """Load beats and labels from processed split folder."""
@@ -25,9 +27,6 @@ def load_test_data(split: str = "test") -> tuple:
     labels = np.load(str(DATA_DIR / split / "labels.npy"))
     return beats.astype(np.float32), labels.astype(int)
 
-
-def beats_to_tensor(beats: np.ndarray) -> torch.Tensor:
-    return torch.tensor(beats, dtype=torch.float32)
 
 def evaluate_cnn(loader: ModelLoader, beats: np.ndarray, labels: np.ndarray,
                  batch_size: int = 128) -> dict:
@@ -41,15 +40,15 @@ def evaluate_cnn(loader: ModelLoader, beats: np.ndarray, labels: np.ndarray,
     loader.cnn.eval()
     with torch.no_grad():
         for start in range(0, len(beats), batch_size):
-            x      = torch.tensor(beats[start:start+batch_size],
+            x     = torch.tensor(beats[start:start+batch_size],
                                   dtype=torch.float32).unsqueeze(1)
-            probs  = torch.softmax(loader.cnn(x), dim=1)
-            preds  = probs.argmax(dim=1).cpu().numpy()
-            confs  = probs.max(dim=1).values.cpu().numpy()
+            probs = torch.softmax(loader.cnn(x), dim=1)
+            preds = probs.argmax(dim=1).cpu().numpy()
+            confs = probs.max(dim=1).values.cpu().numpy()
             all_preds.extend(preds.tolist())
             all_confs.extend(confs.tolist())
-    preds = np.array(all_preds)
-    confs = np.array(all_confs)
+    preds   = np.array(all_preds)
+    confs   = np.array(all_confs)
     acc     = accuracy_score(labels, preds)
     f1_mac  = f1_score(labels, preds, average="macro",    zero_division=0)
     f1_wgt  = f1_score(labels, preds, average="weighted", zero_division=0)
@@ -63,12 +62,9 @@ def evaluate_cnn(loader: ModelLoader, beats: np.ndarray, labels: np.ndarray,
             "name"     : CLASS_NAMES[cls],
             "short"    : SHORT_NAMES[cls],
             "support"  : int(mask.sum()),
-            "precision": round(float(precision_score(labels==cls, preds==cls,
-                                                      zero_division=0)), 4),
-            "recall"   : round(float(recall_score(labels==cls, preds==cls,
-                                                   zero_division=0)), 4),
-            "f1"       : round(float(f1_score(labels==cls, preds==cls,
-                                               zero_division=0)), 4),
+            "precision": round(float(precision_score(labels==cls, preds==cls, zero_division=0)), 4),
+            "recall"   : round(float(recall_score(labels==cls,    preds==cls, zero_division=0)), 4),
+            "f1"       : round(float(f1_score(labels==cls,        preds==cls, zero_division=0)), 4),
         }
     print(f"  Accuracy        : {acc*100:.2f}%")
     print(f"  Macro F1        : {f1_mac:.4f}")
@@ -87,16 +83,17 @@ def evaluate_cnn(loader: ModelLoader, beats: np.ndarray, labels: np.ndarray,
         row = " ".join(f"{cm[i,j]:>5}" for j in range(8))
         print(f"  {SHORT_NAMES[i]:>5}  {row}")
     return {
-        "model"         : "CNN Classifier",
-        "accuracy"      : round(acc,    4),
-        "macro_f1"      : round(f1_mac, 4),
-        "weighted_f1"   : round(f1_wgt, 4),
+        "model"          : "CNN Classifier",
+        "accuracy"       : round(acc,    4),
+        "macro_f1"       : round(f1_mac, 4),
+        "weighted_f1"    : round(f1_wgt, 4),
         "mean_confidence": round(float(confs.mean()), 4),
-        "per_class"     : per_class,
+        "per_class"      : per_class,
         "confusion_matrix": cm.tolist(),
-        "predictions"   : preds,
-        "confidences"   : confs,
+        "predictions"    : preds,
+        "confidences"    : confs,
     }
+
 
 def evaluate_autoencoder(model, threshold: float, model_name: str,
                          beats: np.ndarray, labels: np.ndarray,
@@ -106,7 +103,6 @@ def evaluate_autoencoder(model, threshold: float, model_name: str,
     """
     Evaluate one autoencoder for anomaly detection.
     Normal (class 0) = negative, Any arrhythmia = positive.
-
     Returns precision, recall, F1, ROC-AUC, FPR, FNR.
     """
     print(f"\n{SEP}\n{model_name.upper()} EVALUATION\n{SEP2}")
@@ -127,15 +123,15 @@ def evaluate_autoencoder(model, threshold: float, model_name: str,
         preds = (scores > z_thresh).astype(int)
     else:
         preds = (errors > threshold).astype(int)
-    prec  = precision_score(binary_labels, preds, zero_division=0)
-    rec   = recall_score(binary_labels,    preds, zero_division=0)
-    f1    = f1_score(binary_labels,        preds, zero_division=0)
-    acc   = accuracy_score(binary_labels,  preds)
+    prec = precision_score(binary_labels, preds, zero_division=0)
+    rec  = recall_score(binary_labels,    preds, zero_division=0)
+    f1   = f1_score(binary_labels,        preds, zero_division=0)
+    acc  = accuracy_score(binary_labels,  preds)
     try:
         auc = roc_auc_score(binary_labels, errors)
     except Exception:
         auc = 0.0
-    cm  = confusion_matrix(binary_labels, preds, labels=[0, 1])
+    cm             = confusion_matrix(binary_labels, preds, labels=[0, 1])
     tn, fp, fn, tp = cm.ravel()
     fpr = fp / (fp + tn) if (fp + tn) > 0 else 0.0
     fnr = fn / (fn + tp) if (fn + tp) > 0 else 0.0
@@ -150,7 +146,7 @@ def evaluate_autoencoder(model, threshold: float, model_name: str,
     print(f"  False Pos Rate  : {fpr*100:.2f}%")
     print(f"  False Neg Rate  : {fnr*100:.2f}%")
     print(f"  TP={tp}  FP={fp}  TN={tn}  FN={fn}")
-    normal_errs = errors[binary_labels == 0]
+    normal_errs  = errors[binary_labels == 0]
     anomaly_errs = errors[binary_labels == 1]
     print(f"\n  Reconstruction Error Distribution:")
     print(f"    Normal  — mean={normal_errs.mean():.6f}  std={normal_errs.std():.6f}"
@@ -158,21 +154,22 @@ def evaluate_autoencoder(model, threshold: float, model_name: str,
     print(f"    Anomaly — mean={anomaly_errs.mean():.6f}  std={anomaly_errs.std():.6f}"
           f"  max={anomaly_errs.max():.6f}")
     return {
-        "model"           : model_name,
-        "threshold"       : threshold,
-        "accuracy"        : round(acc,  4),
-        "precision"       : round(prec, 4),
-        "recall"          : round(rec,  4),
-        "f1"              : round(f1,   4),
-        "roc_auc"         : round(auc,  4),
-        "false_pos_rate"  : round(fpr,  4),
-        "false_neg_rate"  : round(fnr,  4),
+        "model"             : model_name,
+        "threshold"         : threshold,
+        "accuracy"          : round(acc,  4),
+        "precision"         : round(prec, 4),
+        "recall"            : round(rec,  4),
+        "f1"                : round(f1,   4),
+        "roc_auc"           : round(auc,  4),
+        "false_pos_rate"    : round(fpr,  4),
+        "false_neg_rate"    : round(fnr,  4),
         "tp": int(tp), "fp": int(fp), "tn": int(tn), "fn": int(fn),
         "normal_mean_error" : round(float(normal_errs.mean()),  6),
         "anomaly_mean_error": round(float(anomaly_errs.mean()), 6),
-        "errors"          : errors,
-        "predictions"     : preds,
+        "errors"            : errors,
+        "predictions"       : preds,
     }
+
 
 def evaluate_combined(cnn_results: dict, trans_results: dict,
                       lstm_results: dict, labels: np.ndarray) -> dict:
@@ -182,19 +179,18 @@ def evaluate_combined(cnn_results: dict, trans_results: dict,
     """
     print(f"\n{SEP}\nCOMBINED SYSTEM EVALUATION\n{SEP2}")
     binary_labels = (labels != 0).astype(int)
-    cnn_flags   = (cnn_results["predictions"]   != 0).astype(int)
-    trans_flags = trans_results["predictions"]
-    lstm_flags  = lstm_results["predictions"]
-    combined = ((cnn_flags == 1) | (trans_flags == 1) | (lstm_flags == 1)).astype(int)
-    prec = precision_score(binary_labels, combined, zero_division=0)
-    rec  = recall_score(binary_labels,    combined, zero_division=0)
-    f1   = f1_score(binary_labels,        combined, zero_division=0)
-    acc  = accuracy_score(binary_labels,  combined)
-    cm          = confusion_matrix(binary_labels, combined, labels=[0, 1])
+    cnn_flags     = (cnn_results["predictions"]   != 0).astype(int)
+    trans_flags   = trans_results["predictions"]
+    lstm_flags    = lstm_results["predictions"]
+    combined      = ((cnn_flags == 1) | (trans_flags == 1) | (lstm_flags == 1)).astype(int)
+    prec          = precision_score(binary_labels, combined, zero_division=0)
+    rec           = recall_score(binary_labels,    combined, zero_division=0)
+    f1            = f1_score(binary_labels,        combined, zero_division=0)
+    acc           = accuracy_score(binary_labels,  combined)
+    cm            = confusion_matrix(binary_labels, combined, labels=[0, 1])
     tn, fp, fn, tp = cm.ravel()
     fpr = fp / (fp + tn) if (fp + tn) > 0 else 0.0
     fnr = fn / (fn + tp) if (fn + tp) > 0 else 0.0
-
     print(f"  Decision rule   : CNN OR Transformer AE OR LSTM AE")
     print(f"  Accuracy        : {acc*100:.2f}%")
     print(f"  Precision       : {prec:.4f}")
@@ -203,7 +199,6 @@ def evaluate_combined(cnn_results: dict, trans_results: dict,
     print(f"  False Pos Rate  : {fpr*100:.2f}%")
     print(f"  False Neg Rate  : {fnr*100:.2f}%")
     print(f"  TP={tp}  FP={fp}  TN={tn}  FN={fn}")
-
     return {
         "model"         : "Combined System",
         "accuracy"      : round(acc,  4),
@@ -214,6 +209,7 @@ def evaluate_combined(cnn_results: dict, trans_results: dict,
         "false_neg_rate": round(fnr,  4),
         "tp": int(tp), "fp": int(fp), "tn": int(tn), "fn": int(fn),
     }
+
 
 def benchmark_speed(loader: ModelLoader, beats: np.ndarray) -> dict:
     """Measure inference time per beat at different batch sizes."""
@@ -228,11 +224,12 @@ def benchmark_speed(loader: ModelLoader, beats: np.ndarray) -> dict:
             t0 = time.perf_counter()
             predict_beats(beats[:n], timestamps, loader, batch_size=64)
             times.append((time.perf_counter() - t0) * 1000)
-        avg     = np.mean(times)
+        avg      = np.mean(times)
         per_beat = avg / n
         results[n] = {"total_ms": round(avg, 1), "per_beat_ms": round(per_beat, 3)}
         print(f"  {n:5d} beats → {avg:7.1f} ms total | {per_beat:.3f} ms/beat")
     return results
+
 
 def main() -> dict:
     print(f"\n{SEP}")
@@ -256,15 +253,15 @@ def main() -> dict:
         val_std    = loader.trans_val_std,
         z_thresh   = loader.trans_z_thresh,
     )
-    lstm_res  = evaluate_autoencoder(
+    lstm_res = evaluate_autoencoder(
         model      = loader.lstm_ae,
         threshold  = loader.lstm_threshold,
         model_name = "LSTM Autoencoder",
         beats      = beats,
         labels     = labels,
     )
-    combined  = evaluate_combined(cnn_res, trans_res, lstm_res, labels)
-    speed     = benchmark_speed(loader, beats)
+    combined = evaluate_combined(cnn_res, trans_res, lstm_res, labels)
+    speed    = benchmark_speed(loader, beats)
     print(f"\n{SEP}\nFINAL EVALUATION SUMMARY\n{SEP2}")
     print(f"  {'Model':<30} {'Accuracy':>9} {'F1':>8} {'ROC-AUC':>9}")
     print(f"  {SEP2}")
@@ -278,19 +275,21 @@ def main() -> dict:
           f"{combined['f1']:>8.4f} {'N/A':>9}")
     print()
     all_results = {
-        "cnn"          : {k: v for k, v in cnn_res.items()
-                          if k not in ("predictions", "confidences")},
+        "cnn"           : {k: v for k, v in cnn_res.items()
+                           if k not in ("predictions", "confidences")},
         "transformer_ae": {k: v for k, v in trans_res.items()
                            if k not in ("errors", "predictions")},
-        "lstm_ae"      : {k: v for k, v in lstm_res.items()
-                          if k not in ("errors", "predictions")},
-        "combined"     : combined,
+        "lstm_ae"       : {k: v for k, v in lstm_res.items()
+                           if k not in ("errors", "predictions")},
+        "combined"      : combined,
         "speed_benchmark": speed,
-        "test_set_size": int(len(beats)),
-        "normal_count" : int((labels == 0).sum()),
-        "anomaly_count": int((labels != 0).sum()),
+        "test_set_size" : int(len(beats)),
+        "normal_count"  : int((labels == 0).sum()),
+        "anomaly_count" : int((labels != 0).sum()),
     }
     return all_results, cnn_res, trans_res, lstm_res
+
+
 if __name__ == "__main__":
     results, cnn_res, trans_res, lstm_res = main()
     out_path = Path(r"C:\ecg_arrhythmia\evaluation\eval_results.json")

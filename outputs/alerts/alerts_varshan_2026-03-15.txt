@@ -1,0 +1,21 @@
+[2026-03-15T12:50:49.637950] ALERT
+  Patient   : varshan
+  Risk      : Critical
+  Message   : 76 anomalies — 38.0% anomaly rate
+  Class     : R
+  Disclaimer: AI-generated. Requires clinician review.
+───────────────────────────────────────────────────────
+[2026-03-15T12:54:03.331328] ALERT
+  Patient   : varshan
+  Risk      : Critical
+  Message   : 76 anomalies — 38.0% anomaly rate
+  Class     : R
+  Disclaimer: AI-generated. Requires clinician review.
+───────────────────────────────────────────────────────
+[2026-03-15T12:54:20.828187] ALERT
+  Patient   : varshan
+  Risk      : Critical
+  Message   : 76 anomalies — 38.0% anomaly rate
+  Class     : R
+  Disclaimer: AI-generated. Requires clinician review.
+───────────────────────────────────────────────────────

@@ -1,0 +1,7 @@
+[2026-03-26T14:55:30.382888] ALERT
+  Patient   : P001
+  Risk      : Critical
+  Message   : 158 anomalies — 31.6% anomaly rate
+  Class     : V
+  Disclaimer: AI-generated. Requires clinician review.
+───────────────────────────────────────────────────────

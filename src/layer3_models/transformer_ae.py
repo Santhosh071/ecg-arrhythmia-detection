@@ -5,6 +5,7 @@ import json
 BEAT_LENGTH = 187
 SAMPLE_RATE = 360
 
+
 class PositionalEncoding(nn.Module):
     def __init__(self, d_model, max_len=BEAT_LENGTH, dropout=0.1):
         super().__init__()
@@ -20,6 +21,7 @@ class PositionalEncoding(nn.Module):
 
     def forward(self, x):
         return self.dropout(x + self.pe[:, :x.size(1)])
+
 
 class TransformerAutoencoder(nn.Module):
 
@@ -38,20 +40,19 @@ class TransformerAutoencoder(nn.Module):
             dim_feedforward=dim_feedforward,
             dropout=dropout, batch_first=True
         )
-        self.encoder = nn.TransformerEncoder(encoder_layer, num_layers=num_layers)
-        self.decoder = nn.TransformerDecoder(decoder_layer, num_layers=num_layers)
+        self.encoder   = nn.TransformerEncoder(encoder_layer, num_layers=num_layers)
+        self.decoder   = nn.TransformerDecoder(decoder_layer, num_layers=num_layers)
         self.threshold = None
 
     def forward(self, x):
-        x = x.unsqueeze(-1)                     
-        x = self.pos_encoding(self.input_projection(x)) 
-        memory = self.encoder(x)                
-        out    = self.decoder(x, memory)        
-        return self.output_projection(out).squeeze(-1)  
-    
+        x      = x.unsqueeze(-1)
+        x      = self.pos_encoding(self.input_projection(x))
+        memory = self.encoder(x)
+        out    = self.decoder(x, memory)
+        return self.output_projection(out).squeeze(-1)
+
     def reconstruction_error(self, x):
-        recon = self.forward(x)
-        return ((x - recon) ** 2).mean(dim=-1)
+        return ((x - self.forward(x)) ** 2).mean(dim=-1)
 
     def compute_threshold(self, val_errors):
         self.threshold = val_errors.mean().item() + 2 * val_errors.std().item()
@@ -76,6 +77,10 @@ class TransformerAutoencoder(nn.Module):
     def model_summary(self):
         total     = sum(p.numel() for p in self.parameters())
         trainable = sum(p.numel() for p in self.parameters() if p.requires_grad)
+        print(f"[TransformerAutoencoder] Params: {total:,} total | {trainable:,} trainable")
+        print(f"  Input : (batch, {BEAT_LENGTH})")
+        print(f"  Output: (batch, {BEAT_LENGTH})")
+        print(f"  Threshold: {self.threshold}")
 
 
 if __name__ == "__main__":
@@ -88,5 +93,7 @@ if __name__ == "__main__":
         errors = model.reconstruction_error(x)
         model.compute_threshold(errors)
         is_anomaly, _ = model.detect_anomaly(x)
+        print(f"  Anomalies detected: {is_anomaly.sum().item()} / {len(x)}")
+        print("[PASS] transformer_ae.py ready for training.")
     except Exception as e:
         print(f"[FAIL] {e}")

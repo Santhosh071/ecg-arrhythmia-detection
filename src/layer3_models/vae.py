@@ -2,11 +2,11 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-BEAT_LENGTH  = 187
-LATENT_DIM   = 32
+BEAT_LENGTH = 187
+LATENT_DIM  = 32
+
 
 class VAEEncoder(nn.Module):
-
     def __init__(self, latent_dim):
         super().__init__()
         self.net = nn.Sequential(
@@ -20,8 +20,8 @@ class VAEEncoder(nn.Module):
         h = self.net(x)
         return self.fc_mu(h), self.fc_log_var(h)
 
-class VAEDecoder(nn.Module):
 
+class VAEDecoder(nn.Module):
     def __init__(self, latent_dim):
         super().__init__()
         self.net = nn.Sequential(
@@ -32,8 +32,9 @@ class VAEDecoder(nn.Module):
 
     def forward(self, z):
         return self.net(z)
-class ECGVariationalAutoencoder(nn.Module):
 
+
+class ECGVariationalAutoencoder(nn.Module):
     def __init__(self, latent_dim=LATENT_DIM):
         super().__init__()
         self.latent_dim = latent_dim
@@ -59,6 +60,11 @@ class ECGVariationalAutoencoder(nn.Module):
     def model_summary(self):
         total     = sum(p.numel() for p in self.parameters())
         trainable = sum(p.numel() for p in self.parameters() if p.requires_grad)
+        print(f"[ECGVariationalAutoencoder] Params: {total:,} total | {trainable:,} trainable")
+        print(f"  Input     : (batch, {BEAT_LENGTH})")
+        print(f"  Output    : (batch, {BEAT_LENGTH})")
+        print(f"  Latent dim: {self.latent_dim}")
+
 
 def vae_loss(recon, x, mu, log_var, beta=1.0):
     recon_loss = F.mse_loss(recon, x, reduction='mean')
@@ -70,12 +76,13 @@ if __name__ == "__main__":
     try:
         model = ECGVariationalAutoencoder()
         model.model_summary()
-        x                    = torch.randn(4, BEAT_LENGTH)
-        recon, mu, log_var   = model(x)
-        assert recon.shape   == (4, BEAT_LENGTH)
-        assert mu.shape      == (4, LATENT_DIM)
-        loss, recon_l, kl_l  = vae_loss(recon, x, mu, log_var)
-        synthetic            = model.generate(n_samples=8)
+        x                  = torch.randn(4, BEAT_LENGTH)
+        recon, mu, log_var = model(x)
+        assert recon.shape == (4, BEAT_LENGTH)
+        assert mu.shape    == (4, LATENT_DIM)
+        loss, recon_l, kl_l = vae_loss(recon, x, mu, log_var)
+        synthetic           = model.generate(n_samples=8)
         assert synthetic.shape == (8, BEAT_LENGTH)
+        print("[PASS] vae.py ready for training.")
     except Exception as e:
         print(f"[FAIL] {e}")

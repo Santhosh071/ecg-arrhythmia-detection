@@ -1,0 +1,12 @@
+[2026-03-15T12:48:46.376411] ALERT
+  Patient   : TEST_001
+  Risk      : Critical (red)
+  Message   : Test alert - PVC detected | Class: V | Beat #42
+  Disclaimer: AI-generated. Requires clinician review.
+───────────────────────────────────────────────────────
+[2026-03-15T12:52:29.126506] ALERT
+  Patient   : TEST_001
+  Risk      : Critical (red)
+  Message   : Test alert - PVC detected | Class: V | Beat #42
+  Disclaimer: AI-generated. Requires clinician review.
+───────────────────────────────────────────────────────

@@ -1,0 +1,7 @@
+[2026-03-24T03:45:04.533861] ALERT
+  Patient   : thanu
+  Risk      : Critical
+  Message   : 493 anomalies — 98.6% anomaly rate
+  Class     : /
+  Disclaimer: AI-generated. Requires clinician review.
+───────────────────────────────────────────────────────

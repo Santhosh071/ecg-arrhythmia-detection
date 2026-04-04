@@ -1,4 +1,4 @@
-import os
+﻿import os
 import json
 import logging
 from datetime import datetime
@@ -16,41 +16,26 @@ _db  = None
 _llm = None
 
 def init_tools(db, llm):
-    """Called once by agent.py to inject DB and LLM into tool scope."""
     global _db, _llm
     _db  = db
     _llm = llm
 
 @tool
 def monitor_trends(input_json: str) -> str:
-    """
-    Analyse anomaly frequency trend for a patient across recent sessions.
-
-    Input JSON:
-        {"patient_id": "P001", "last_n_sessions": 5}
-
-    Returns trend summary: improving / worsening / stable + rates.
-
-    DISCLAIMER: For monitoring support only. Not a clinical diagnosis.
-    """
+    """Summarise recent anomaly-rate trends for a patient from stored session history."""
     try:
         data       = json.loads(input_json)
         patient_id = data.get("patient_id", "unknown")
         n          = int(data.get("last_n_sessions", 5))
-
         if _db is None:
             return "Database not initialised. Call init_tools() first."
-
         trend = _db.get_anomaly_trend(patient_id, last_n_sessions=n)
         _db.log_tool_call("monitor_trends", input_json, json.dumps(trend), patient_id)
-
         if trend["trend"] == "no_data":
             return f"No session history found for patient {patient_id}."
-
         return (
             f"Trend for {patient_id} over {trend['sessions']} sessions: "
-            f"{trend['trend'].upper()} | "
-            f"Avg anomaly rate: {trend['avg_anomaly_rate']}% | "
+            f"{trend['trend'].upper()} | Avg anomaly rate: {trend['avg_anomaly_rate']}% | "
             f"Latest rate: {trend['latest_rate']}%"
         )
     except Exception as e:
@@ -59,23 +44,12 @@ def monitor_trends(input_json: str) -> str:
 
 @tool
 def assess_risk(input_json: str) -> str:
-    """
-    Compute risk level from a session summary.
-
-    Input JSON:
-        {"anomaly_rate": 0.15, "dominant_class": "V",
-         "critical_beats": 2, "total_beats": 200}
-
-    Returns: Low / Medium / High / Critical with reasoning.
-
-    DISCLAIMER: Risk scores are decision-support only. Clinician review required.
-    """
+    """Assign a LOW/MEDIUM/HIGH/CRITICAL risk label from anomaly statistics."""
     try:
         data           = json.loads(input_json)
         anomaly_rate   = float(data.get("anomaly_rate", 0.0))
         dominant_class = data.get("dominant_class", "N")
         critical_beats = int(data.get("critical_beats", 0))
-        total_beats    = int(data.get("total_beats", 1))
         if critical_beats > 0 or dominant_class in ("E", "V") and anomaly_rate >= 0.20:
             risk  = "Critical"
             color = "red"
@@ -92,7 +66,6 @@ def assess_risk(input_json: str) -> str:
             risk  = "Low"
             color = "green"
             reason = f"Low anomaly rate ({anomaly_rate*100:.1f}%). No significant arrhythmia detected."
-
         result = {
             "risk_level"   : risk,
             "color"        : color,
@@ -109,17 +82,7 @@ def assess_risk(input_json: str) -> str:
 
 @tool
 def explain_arrhythmia(input_json: str) -> str:
-    """
-    Generate a plain-English clinical explanation of a detected arrhythmia class.
-
-    Input JSON:
-        {"class_name": "Premature Ventricular Contraction (V)",
-         "confidence": 0.91, "patient_context": "elderly, hypertension"}
-
-    Returns LLM-generated explanation in simple clinical language.
-
-    DISCLAIMER: AI-generated explanation. Must be reviewed by a clinician.
-    """
+    """Explain a detected arrhythmia class and its clinical significance."""
     try:
         data            = json.loads(input_json)
         class_name      = data.get("class_name", "Unknown")
@@ -149,63 +112,30 @@ def explain_arrhythmia(input_json: str) -> str:
 
 @tool
 def _send_alert(input_str: str) -> str:
-    """
-    Send a tiered alert.
-    Saves to SQLite DB AND writes .txt file to outputs/alerts/
-
-    Input JSON keys:
-        patient_id : str
-        risk_level : Low | Medium | High | Critical
-        message    : str
-        class_name : str (optional)
-        beat_index : int (optional)
-    """
+    """Persist and write an alert record for a risky ECG finding."""
     try:
-        import os
         from pathlib import Path
-        from datetime import datetime
-
         data       = json.loads(input_str)
         patient_id = data.get("patient_id", "UNKNOWN")
         risk_level = data.get("risk_level", "Low")
         message    = data.get("message",    "No details provided.")
         class_name = data.get("class_name", "")
         beat_index = data.get("beat_index", -1)
-
-        color_map = {
-            "Low"     : "green",
-            "Medium"  : "yellow",
-            "High"    : "orange",
-            "Critical": "red",
-        }
+        color_map = {"Low": "green", "Medium": "yellow", "High": "orange", "Critical": "red"}
         color = color_map.get(risk_level, "yellow")
         ts    = datetime.utcnow().isoformat()
-
-        # ── Save to SQLite ────────────────────────────────────────────────
         if _db is not None:
             try:
-                _db.save_alert(
-                    patient_id = patient_id,
-                    risk_level = risk_level,
-                    color      = color,
-                    message    = message,
-                    beat_index = beat_index,
-                    class_name = class_name,
-                )
+                _db.save_alert(patient_id=patient_id, risk_level=risk_level, color=color, message=message, beat_index=beat_index, class_name=class_name)
             except Exception:
                 pass
-
-        # ── Save .txt file to outputs/alerts/ ─────────────────────────────
         alerts_dir = Path(os.getenv("PROJECT_ROOT", r"C:\ecg_arrhythmia")) / "outputs" / "alerts"
         alerts_dir.mkdir(parents=True, exist_ok=True)
-
         date_str  = datetime.utcnow().strftime("%Y-%m-%d")
         safe_pid  = patient_id.replace("/", "-").replace("\\", "-")
         file_path = alerts_dir / f"alerts_{safe_pid}_{date_str}.txt"
-
         cls_tag   = f" | Class: {class_name}" if class_name else ""
         beat_tag  = f" | Beat #{beat_index}"  if beat_index >= 0 else ""
-
         with open(str(file_path), "a", encoding="utf-8") as f:
             f.write(
                 f"[{ts}] ALERT\n"
@@ -213,75 +143,124 @@ def _send_alert(input_str: str) -> str:
                 f"  Risk      : {risk_level} ({color})\n"
                 f"  Message   : {message}{cls_tag}{beat_tag}\n"
                 f"  Disclaimer: AI-generated. Requires clinician review.\n"
-                f"{'─'*55}\n"
+                f"{'-'*55}\n"
             )
-
-        return (
-            f"ALERT [{risk_level.upper()}] fired for {patient_id}. "
-            f"File: {file_path.name}"
-        )
-
+        return f"ALERT [{risk_level.upper()}] fired for {patient_id}. File: {file_path.name}"
     except Exception as e:
         return f"Alert error: {e}"
 
 @tool
 def generate_report(input_json: str) -> str:
-    """
-    Generate a PDF session summary report.
-
-    Input JSON:
-        {"patient_id": "P001", "session_data": {...}}
-
-    Saves PDF to REPORTS_PATH and returns the file path.
-    """
+    """Generate a detailed PDF report from structured ECG session data."""
     try:
         from reportlab.lib.pagesizes import A4
         from reportlab.lib import colors
         from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
         from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
         from reportlab.lib.units import cm
+
         data         = json.loads(input_json)
         patient_id   = data.get("patient_id", "unknown")
         session_data = data.get("session_data", {})
         timestamp    = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
         filename     = REPORTS_PATH / f"report_{patient_id}_{timestamp}.pdf"
-        doc    = SimpleDocTemplate(str(filename), pagesize=A4,
-                                   topMargin=2*cm, bottomMargin=2*cm)
+        doc    = SimpleDocTemplate(str(filename), pagesize=A4, topMargin=1.6*cm, bottomMargin=1.6*cm)
         styles = getSampleStyleSheet()
         story  = []
-        title_style = ParagraphStyle("title", parent=styles["Title"],
-                                     fontSize=18, spaceAfter=12)
+
+        title_style = ParagraphStyle("title", parent=styles["Title"], fontSize=19, spaceAfter=12)
+        section_style = ParagraphStyle("section", parent=styles["Heading2"], fontSize=13, textColor=colors.HexColor("#115e59"), spaceBefore=10, spaceAfter=8)
+        body_style = styles["BodyText"]
+
         story.append(Paragraph("ECG Arrhythmia Detection Report", title_style))
-        story.append(Spacer(1, 0.5*cm))
+        story.append(Paragraph(f"Patient: <b>{patient_id}</b>", body_style))
+        story.append(Paragraph(f"Generated: {datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')}", body_style))
+        story.append(Spacer(1, 0.4*cm))
+
+        summary_text = session_data.get("summary_text", "No summary provided.")
+        report_focus = session_data.get("report_focus", "Clinical review summary")
+        clinical_notes = session_data.get("clinical_notes", "")
+        story.append(Paragraph("Executive Summary", section_style))
+        story.append(Paragraph(summary_text, body_style))
+        story.append(Paragraph(f"Report focus: <b>{report_focus}</b>", body_style))
+
         meta = [
-            ["Patient ID",    patient_id],
-            ["Generated",     datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")],
-            ["Risk Level",    session_data.get("session_risk", "N/A")],
-            ["Total Beats",   str(session_data.get("total_beats", "N/A"))],
+            ["Risk Level", session_data.get("session_risk", "N/A")],
+            ["Total Beats", str(session_data.get("total_beats", "N/A"))],
             ["Anomaly Count", str(session_data.get("anomaly_count", "N/A"))],
-            ["Anomaly Rate",  f"{float(session_data.get('anomaly_rate', 0))*100:.1f}%"],
-            ["Duration",      f"{session_data.get('recording_sec', 'N/A')}s"],
-            ["Dominant Class",session_data.get("dominant_class", "N/A")],
+            ["Anomaly Rate", f"{float(session_data.get('anomaly_rate', 0))*100:.1f}%"],
+            ["Duration", f"{session_data.get('recording_sec', 'N/A')}s"],
+            ["Dominant Class", session_data.get("dominant_class", "N/A")],
         ]
-        t = Table(meta, colWidths=[5*cm, 10*cm])
-        t.setStyle(TableStyle([
-            ("BACKGROUND",  (0, 0), (0, -1), colors.lightgrey),
-            ("FONTNAME",    (0, 0), (-1, -1), "Helvetica"),
-            ("FONTSIZE",    (0, 0), (-1, -1), 10),
-            ("GRID",        (0, 0), (-1, -1), 0.5, colors.grey),
+        meta_table = Table(meta, colWidths=[5.2*cm, 9.8*cm])
+        meta_table.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (0, -1), colors.HexColor("#dbeeea")),
+            ("GRID", (0, 0), (-1, -1), 0.4, colors.grey),
             ("ROWBACKGROUNDS", (0, 0), (-1, -1), [colors.whitesmoke, colors.white]),
+            ("FONTNAME", (0, 0), (-1, -1), "Helvetica"),
+            ("FONTSIZE", (0, 0), (-1, -1), 10),
         ]))
-        story.append(t)
-        story.append(Spacer(1, 0.5*cm))
+        story.append(Paragraph("Session Metrics", section_style))
+        story.append(meta_table)
+
+        class_counts = session_data.get("class_counts", {}) or {}
+        if class_counts:
+            story.append(Paragraph("Class Distribution", section_style))
+            class_rows = [["Class", "Count"]] + [[str(k), str(v)] for k, v in class_counts.items()]
+            class_table = Table(class_rows, colWidths=[6*cm, 4*cm])
+            class_table.setStyle(TableStyle([
+                ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#f0f4f8")),
+                ("GRID", (0, 0), (-1, -1), 0.4, colors.grey),
+                ("FONTNAME", (0, 0), (-1, -1), "Helvetica"),
+                ("FONTSIZE", (0, 0), (-1, -1), 10),
+            ]))
+            story.append(class_table)
+
+        top_anomalies = session_data.get("top_anomalies", []) or []
+        if top_anomalies:
+            story.append(Paragraph("Top Anomaly Highlights", section_style))
+            anomaly_rows = [["Beat", "Time (s)", "Class", "Confidence", "Risk"]]
+            for item in top_anomalies:
+                anomaly_rows.append([
+                    str(item.get("beat_index", "-")),
+                    f"{float(item.get('timestamp_sec', 0.0)):.2f}",
+                    str(item.get("class_short", item.get("class_name", "-"))),
+                    f"{float(item.get('confidence', 0.0))*100:.1f}%",
+                    str(item.get("risk_level", "-")),
+                ])
+            anomaly_table = Table(anomaly_rows, colWidths=[2*cm, 2.2*cm, 3*cm, 3*cm, 2.5*cm])
+            anomaly_table.setStyle(TableStyle([
+                ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#fdecea")),
+                ("GRID", (0, 0), (-1, -1), 0.4, colors.grey),
+                ("FONTNAME", (0, 0), (-1, -1), "Helvetica"),
+                ("FONTSIZE", (0, 0), (-1, -1), 9),
+            ]))
+            story.append(anomaly_table)
+
+        review_flags = session_data.get("review_flags", []) or []
+        if review_flags:
+            story.append(Paragraph("Review Flags", section_style))
+            for item in review_flags:
+                story.append(Paragraph(f"• {item}", body_style))
+
+        if clinical_notes:
+            story.append(Paragraph("Clinician Notes", section_style))
+            story.append(Paragraph(str(clinical_notes), body_style))
+
+        recommendations = session_data.get("recommendations", []) or []
+        if recommendations:
+            story.append(Paragraph("Review Guidance", section_style))
+            for item in recommendations:
+                story.append(Paragraph(f"• {item}", body_style))
+
         disclaimer = (
-            "<b>DISCLAIMER:</b> This report is generated by an AI-assisted system "
-            "for clinical decision support only. It does not constitute a medical diagnosis. "
-            "All findings must be reviewed and interpreted by a qualified clinician."
+            "<b>DISCLAIMER:</b> This report is generated by an AI-assisted system for clinical decision support only. "
+            "It does not constitute a medical diagnosis. All findings must be reviewed and interpreted by a qualified clinician."
         )
-        story.append(Paragraph(disclaimer, styles["Normal"]))
+        story.append(Spacer(1, 0.4*cm))
+        story.append(Paragraph(disclaimer, body_style))
 
         doc.build(story)
-
         if _db:
             _db.log_tool_call("generate_report", patient_id, str(filename))
         return f"Report saved: {filename}"
@@ -291,17 +270,7 @@ def generate_report(input_json: str) -> str:
 
 @tool
 def answer_query(input_json: str) -> str:
-    """
-    Answer a clinician's natural language question about ECG findings.
-
-    Input JSON:
-        {"question": "What does a high PVC rate indicate?",
-         "context": "Patient has 15% PVC rate, age 65, hypertension"}
-
-    Returns LLM answer grounded in the provided context.
-
-    DISCLAIMER: AI-generated answer. Not a substitute for clinical expertise.
-    """
+    """Answer a clinician or disease-related question using provided ECG context."""
     try:
         data     = json.loads(input_json)
         question = data.get("question", "")
@@ -315,8 +284,9 @@ def answer_query(input_json: str) -> str:
             f"Answer the following question using the provided patient context.\n\n"
             f"Context : {context}\n"
             f"Question: {question}\n\n"
-            f"Be factual, concise, and evidence-based. "
-            f"Do not recommend specific medications or treatments."
+            f"Be factual, concise, and evidence-based. Explain the likely disease meaning of the ECG pattern when relevant, "
+            f"state what the finding may suggest clinically, include what to review next, and clearly state what should not be assumed "
+            f"without clinician confirmation. Do not recommend specific medications or treatments."
         )
         response = _llm.invoke(prompt)
         answer   = response.content if hasattr(response, "content") else str(response)
@@ -329,14 +299,7 @@ def answer_query(input_json: str) -> str:
 
 @tool
 def check_history(input_json: str) -> str:
-    """
-    Retrieve past session history for a patient from the database.
-
-    Input JSON:
-        {"patient_id": "P001", "limit": 5}
-
-    Returns list of past sessions with risk, anomaly rates, timestamps.
-    """
+    """Return recent patient session history from the database."""
     try:
         data       = json.loads(input_json)
         patient_id = data.get("patient_id", "unknown")
@@ -350,9 +313,7 @@ def check_history(input_json: str) -> str:
         lines = [f"History for {patient_id} (last {len(history)} sessions):"]
         for h in history:
             lines.append(
-                f"  [{h['timestamp'][:10]}] Risk={h['risk_level']} | "
-                f"Anomalies={h['anomaly_count']} ({h['anomaly_rate']}%) | "
-                f"Class={h['dominant_class']} | Duration={h['recording_sec']}s"
+                f"  [{h['timestamp'][:10]}] Risk={h['risk_level']} | Anomalies={h['anomaly_count']} ({h['anomaly_rate']}%) | Class={h['dominant_class']} | Duration={h['recording_sec']}s"
             )
         return "\n".join(lines)
     except Exception as e:
@@ -361,41 +322,20 @@ def check_history(input_json: str) -> str:
 
 @tool
 def detect_sensor_issue(input_json: str) -> str:
-    """
-    Analyse signal quality and flag sensor or electrode issues.
-
-    Input JSON:
-        {"patient_id": "P001", "raw_signal_summary":
-            {"is_good": false, "issues": ["Flat-line detected"],
-             "snr_db": -10.5, "mean_hr_bpm": 0}}
-
-    OR pass raw signal array as base64 for full analysis.
-
-    Returns: quality verdict, detected issues, recommended action.
-    """
+    """Summarise ECG signal quality and likely sensor issues from raw-signal metadata."""
     try:
         data    = json.loads(input_json)
         pid     = data.get("patient_id", "unknown")
         summary = data.get("raw_signal_summary", {})
-
-        is_good   = summary.get("is_good", True)
-        issues    = summary.get("issues", [])
-        snr_db    = summary.get("snr_db", 0.0)
-        mean_hr   = summary.get("mean_hr_bpm", 0.0)
-        dur       = summary.get("duration_sec", 0.0)
+        is_good = summary.get("is_good", True)
+        issues  = summary.get("issues", [])
+        snr_db  = summary.get("snr_db", 0.0)
+        mean_hr = summary.get("mean_hr_bpm", 0.0)
+        dur     = summary.get("duration_sec", 0.0)
         if is_good:
             result = f"Signal quality OK | SNR={snr_db} dB | HR={mean_hr} bpm | Duration={dur}s"
-            action = "No action needed."
         else:
-            result = f"SIGNAL ISSUES DETECTED for {pid}:\n"
-            result += "\n".join(f"  - {i}" for i in issues)
-            if snr_db < 5.0:
-                action = "Check electrode contact and reduce patient movement."
-            elif mean_hr == 0:
-                action = "No heartbeat detected — check lead placement immediately."
-            else:
-                action = "Review signal source. Consider repositioning electrodes."
-            result += f"\nRecommended action: {action}"
+            result = f"SIGNAL ISSUES DETECTED for {pid}:\n" + "\n".join(f"  - {i}" for i in issues)
         if _db:
             _db.log_tool_call("detect_sensor_issue", input_json[:200], result[:300], pid)
         return result
@@ -413,3 +353,4 @@ ALL_TOOLS = [
     check_history,
     detect_sensor_issue,
 ]
+

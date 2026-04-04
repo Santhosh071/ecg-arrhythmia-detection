@@ -1,0 +1,7 @@
+[2026-03-25T05:56:43.816834] ALERT
+  Patient   : P001
+  Risk      : High
+  Message   : 441 anomalies — 88.2% anomaly rate
+  Class     : /
+  Disclaimer: AI-generated. Requires clinician review.
+───────────────────────────────────────────────────────

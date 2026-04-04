@@ -1,0 +1,14 @@
+[2026-03-15T13:19:49.631642] ALERT
+  Patient   : kumar
+  Risk      : Critical
+  Message   : 76 anomalies — 38.0% anomaly rate
+  Class     : R
+  Disclaimer: AI-generated. Requires clinician review.
+───────────────────────────────────────────────────────
+[2026-03-15T17:07:44.479751] ALERT
+  Patient   : kumar
+  Risk      : High
+  Message   : 424 anomalies — 84.8% anomaly rate
+  Class     : F
+  Disclaimer: AI-generated. Requires clinician review.
+───────────────────────────────────────────────────────

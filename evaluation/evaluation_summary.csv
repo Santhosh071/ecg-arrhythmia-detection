@@ -1,0 +1,13 @@
+Model,Class,Class Name,Accuracy(%),F1,Precision,Recall,Notes
+CNN Classifier,Overall,,97.18,0.9751,,,
+CNN Classifier,N,Normal (N),,0.9813,0.9969,0.9662,11255
+CNN Classifier,L,Left Bundle Branch Block (L),,0.9959,0.9967,0.9950,1211
+CNN Classifier,R,Right Bundle Branch Block (R),,0.9968,0.9963,0.9972,1089
+CNN Classifier,A,Atrial Premature Beat (A),,0.7706,0.6568,0.9319,382
+CNN Classifier,V,Premature Ventricular Contraction (V),,0.9610,0.9531,0.9691,1069
+CNN Classifier,/,Paced Beat (/),,1.0000,1.0000,1.0000,1054
+CNN Classifier,E,Ventricular Escape Beat (E),,0.9032,0.9333,0.8750,16
+CNN Classifier,F,Fusion Beat (F),,0.5561,0.3931,0.9500,120
+Transformer AE,Binary,,98.36,0.9731,0.9733,0.9729,AUC=0.9872
+LSTM AE,Binary,,68.95,0.0492,0.3736,0.0263,AUC=0.6195
+Combined System,Binary,,96.07,0.9393,0.8889,0.9957,

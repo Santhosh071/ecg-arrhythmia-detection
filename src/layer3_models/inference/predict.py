@@ -7,6 +7,7 @@ from .result_schema import (
     compute_session_risk,
 )
 
+
 def _build_beat_result(
     idx         : int,
     ts          : float,
@@ -27,7 +28,6 @@ def _build_beat_result(
         transformer_anomaly = t_flag,
         lstm_anomaly        = l_flag,
         transformer_score   = round(t_zscore, 4),
-        lstm_score          = round(l_error,  6),
         transformer_error   = round(t_error,  6),
         lstm_error          = round(l_error,  6),
         cnn_class_id        = class_id,
@@ -39,13 +39,16 @@ def _build_beat_result(
         alert_color         = CLASS_ALERT_COLOR.get(class_id, "yellow"),
     )
 
+
 def _zscore(error: float, mean: float, std: float) -> float:
     return (error - mean) / std if std > 1e-12 else 0.0
+
 
 def _trans_flag(loader: ModelLoader, error, zscore) -> bool:
     if loader.trans_z_thresh is not None:
         return bool(zscore > loader.trans_z_thresh)
     return bool(error > loader.trans_threshold)
+
 
 @torch.no_grad()
 def predict_beat(
@@ -58,8 +61,8 @@ def predict_beat(
         raise RuntimeError("Call ModelLoader.load_all() before predict_beat().")
     if len(beat) != BEAT_LENGTH:
         raise ValueError(f"Beat must be {BEAT_LENGTH} samples. Got {len(beat)}.")
-    x    = torch.tensor(beat, dtype=torch.float32).unsqueeze(0).to(DEVICE)  # (1, 187)
-    x_cnn = x.unsqueeze(1)                                                   # (1, 1, 187) — CNN needs channel dim
+    x     = torch.tensor(beat, dtype=torch.float32).unsqueeze(0).to(DEVICE)
+    x_cnn = x.unsqueeze(1)
     t_error  = float(loader.transformer_ae.reconstruction_error(x).item())
     t_zscore = _zscore(t_error, loader.trans_val_mean or 0.0, loader.trans_val_std or 1.0)
     t_flag   = _trans_flag(loader, t_error, t_zscore)
@@ -74,6 +77,7 @@ def predict_beat(
         l_error, l_flag,
         class_id, confidence, probs[0].cpu().numpy(),
     )
+
 
 @torch.no_grad()
 def predict_beats(
@@ -93,9 +97,9 @@ def predict_beats(
     vmean   = loader.trans_val_mean or 0.0
     vstd    = loader.trans_val_std  or 1.0
     for start in range(0, len(beats), batch_size):
-        end  = min(start + batch_size, len(beats))
-        x     = torch.tensor(beats[start:end], dtype=torch.float32).to(DEVICE)  # (B, 187)
-        x_cnn = x.unsqueeze(1)                                                   # (B, 1, 187)
+        end   = min(start + batch_size, len(beats))
+        x     = torch.tensor(beats[start:end], dtype=torch.float32).to(DEVICE)
+        x_cnn = x.unsqueeze(1)
         ts    = timestamps[start:end]
         t_errors  = loader.transformer_ae.reconstruction_error(x).cpu().numpy()
         t_zscores = (t_errors - vmean) / vstd if vstd > 1e-12 else np.zeros(len(t_errors))
@@ -133,6 +137,7 @@ def predict_beats(
         session_risk   = compute_session_risk(anom_rate, results),
         recording_sec  = round(float(timestamps[-1]), 2) if len(timestamps) > 0 else 0.0,
     )
+
 
 def predict_ecg(
     raw_signal : np.ndarray,

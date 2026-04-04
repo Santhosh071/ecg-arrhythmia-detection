@@ -1,0 +1,7 @@
+[2026-03-15T17:24:46.057613] ALERT
+  Patient   : Santhoshkumar
+  Risk      : High
+  Message   : 297 anomalies — 59.4% anomaly rate
+  Class     : F
+  Disclaimer: AI-generated. Requires clinician review.
+───────────────────────────────────────────────────────

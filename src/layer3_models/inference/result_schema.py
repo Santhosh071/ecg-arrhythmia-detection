@@ -12,8 +12,15 @@ CLASS_NAMES = {
     7: "Fusion Beat (F)",
 }
 SHORT_NAMES = {0: "N", 1: "L", 2: "R", 3: "A", 4: "V", 5: "/", 6: "E", 7: "F"}
-CLASS_RISK = {0: "Low", 1: "Medium", 2: "Medium", 3: "Medium", 4: "High", 5: "Low", 6: "High", 7: "High",}
-CLASS_ALERT_COLOR = {0: "green", 1: "yellow", 2: "yellow", 3: "yellow", 4: "orange", 5: "green", 6: "red", 7: "orange",}
+CLASS_RISK = {
+    0: "Low", 1: "Medium", 2: "Medium", 3: "Medium",
+    4: "High", 5: "Low",   6: "High",   7: "High",
+}
+CLASS_ALERT_COLOR = {
+    0: "green",  1: "yellow", 2: "yellow", 3: "yellow",
+    4: "orange", 5: "green",  6: "red",    7: "orange",
+}
+
 
 @dataclass
 class BeatResult:
@@ -23,7 +30,6 @@ class BeatResult:
     transformer_anomaly : bool
     lstm_anomaly        : bool
     transformer_score   : float
-    lstm_score          : float
     transformer_error   : float
     lstm_error          : float
     cnn_class_id        : int
@@ -53,6 +59,7 @@ class BeatResult:
             f"{flag} | CNN: {self.cnn_short_name} ({self.cnn_confidence*100:.1f}%) "
             f"| Z={self.transformer_score:.2f} | Risk={self.risk_level}"
         )
+
 
 @dataclass
 class BatchResult:
@@ -85,6 +92,7 @@ class BatchResult:
             f"Dominant class : {self.dominant_class}\n"
             f"Duration       : {self.recording_sec:.1f}s"
         )
+
 
 def compute_session_risk(anomaly_rate: float, beat_results: list) -> str:
     if any(b.is_critical() for b in beat_results):

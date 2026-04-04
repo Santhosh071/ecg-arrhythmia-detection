@@ -1,0 +1,11 @@
+﻿.git
+.gitignore
+ecg
+frontend/node_modules
+frontend/.next
+outputs
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache
